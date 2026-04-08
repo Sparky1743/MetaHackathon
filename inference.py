@@ -31,10 +31,11 @@ from openai import OpenAI
 
 # ── Configuration ─────────────────────────────────────────────────────────────
 
-API_BASE_URL = os.environ.get("API_BASE_URL", "https://generativelanguage.googleapis.com/v1beta/openai/")
-MODEL_NAME = os.environ.get("MODEL_NAME", "gemini-2.0-flash")
-API_KEY = os.environ.get("HF_TOKEN") or os.environ.get("OPENAI_API_KEY") or os.environ.get("GEMINI_API_KEY", "")
-ENV_URL = os.environ.get("ENV_URL", "http://localhost:7860")
+API_BASE_URL = os.getenv("API_BASE_URL", "https://generativelanguage.googleapis.com/v1beta/openai/")
+MODEL_NAME = os.getenv("MODEL_NAME", "gemini-2.0-flash")
+HF_TOKEN = os.getenv("HF_TOKEN")
+API_KEY = HF_TOKEN or os.getenv("OPENAI_API_KEY") or os.getenv("GEMINI_API_KEY", "")
+ENV_URL = os.getenv("ENV_URL", "http://localhost:7860")
 
 TASKS = [
     "easy_memory_leak",
