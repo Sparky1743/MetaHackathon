@@ -1,3 +1,12 @@
+---
+title: Oncall Env
+emoji: "🚨"
+colorFrom: blue
+colorTo: red
+sdk: docker
+pinned: false
+---
+
 # OnCallEnv — Production Incident Response Environment
 
 **An OpenEnv-compliant environment where AI agents diagnose and remediate real-world production infrastructure incidents.**
