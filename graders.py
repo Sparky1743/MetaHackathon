@@ -116,7 +116,7 @@ def grade_easy_memory_leak(state: EnvState) -> float:
     efficiency = _efficiency_score(state, 10, resolved)
     penalty = _penalty_score(state, ["user-service", "postgres-primary"])
 
-    return max(0.0, min(1.0, round(
+    return max(0.01, min(0.99, round(
         investigation + root_cause + remediation + efficiency + penalty, 3)))
 
 
@@ -140,7 +140,7 @@ def grade_medium_cascading_failure(state: EnvState) -> float:
     efficiency = _efficiency_score(state, 15, resolved)
     penalty = _penalty_score(state, ["user-service", "redis-cache"])
 
-    return max(0.0, min(1.0, round(
+    return max(0.01, min(0.99, round(
         investigation + root_cause + remediation + efficiency + penalty, 3)))
 
 
@@ -167,7 +167,7 @@ def grade_hard_cache_degradation(state: EnvState) -> float:
     efficiency = _efficiency_score(state, 20, resolved)
     penalty = _penalty_score(state, [])
 
-    return max(0.0, min(1.0, round(
+    return max(0.01, min(0.99, round(
         investigation + root_cause + remediation + efficiency + penalty, 3)))
 
 
@@ -193,7 +193,7 @@ def grade_medium_dns_misconfiguration(state: EnvState) -> float:
     penalty = _penalty_score(
         state, ["payment-service", "user-service", "postgres-primary", "redis-cache"])
 
-    return max(0.0, min(1.0, round(
+    return max(0.01, min(0.99, round(
         investigation + root_cause + remediation + efficiency + penalty, 3)))
 
 
@@ -221,7 +221,7 @@ def grade_hard_replication_lag(state: EnvState) -> float:
     efficiency = _efficiency_score(state, 20, resolved)
     penalty = _penalty_score(state, ["api-gateway", "redis-cache", "cache-service"])
 
-    return max(0.0, min(1.0, round(
+    return max(0.01, min(0.99, round(
         investigation + root_cause + remediation + efficiency + penalty, 3)))
 
 
@@ -263,7 +263,7 @@ def grade_expert_multi_root_cause(state: EnvState) -> float:
     penalty = _penalty_score(
         state, ["user-service", "product-service", "postgres-primary", "redis-cache"])
 
-    return max(0.0, min(1.0, round(
+    return max(0.01, min(0.99, round(
         investigation + root_cause + remediation + efficiency + penalty, 3)))
 
 
@@ -285,4 +285,4 @@ def grade_task(task_id: str, state: EnvState) -> float:
     if grader is None:
         raise ValueError(f"No grader for task: {task_id}")
     score = grader(state)
-    return max(0.0, min(1.0, round(score, 3)))
+    return max(0.01, min(0.99, round(score, 3)))

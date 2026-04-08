@@ -587,6 +587,6 @@ class OnCallEnvironment:
         breakdown["penalty"] = round(-min(penalty, 0.15), 3)
 
         total = sum(breakdown.values())
-        total = round(max(0.0, min(1.0, total)), 3)
+        total = round(max(0.01, min(0.99, total)), 3)
 
         return Reward(total=total, breakdown=breakdown)
