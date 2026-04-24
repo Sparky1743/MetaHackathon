@@ -29,7 +29,7 @@ Incident response is a messy, partially observable skill. Real on-call engineers
 | --- | --- | --- | --- | --- |
 | ITBench / SRE-bench style tasks | partial | no | partial | task-specific |
 | OpenRCA / RCAEval style datasets | no | no | logs only | offline |
-| **OnCallEnv Red Shift** | **yes** | **ACCEL regret buffer planned** | **metrics, logs, traces** | **OpenEnv Rubrics** |
+| **OnCallEnv Red Shift** | **yes** | **ACCEL-style regret autocurriculum** | **metrics, logs, traces** | **OpenEnv Rubrics** |
 
 ## Architecture
 
@@ -52,6 +52,10 @@ These plots are committed under `docs/plots/` so the submission has visible rewa
 ![GPU Policy Baseline vs Trained](docs/plots/gpu_policy_baseline_vs_trained.png)
 
 ![GPU Policy Training Curve](docs/plots/gpu_policy_training_curve.png)
+
+![Curriculum Policy Baseline vs Trained](docs/plots/curriculum_policy_baseline_vs_trained.png)
+
+![Curriculum Policy Training Curve](docs/plots/curriculum_policy_training_curve.png)
 
 ![Autocurriculum Diversity](docs/plots/autocurriculum_diversity.png)
 
@@ -79,6 +83,7 @@ pip install -r requirements.txt
 PYTHONPATH=src uvicorn app:app --host 0.0.0.0 --port 7860
 PYTHONPATH=src bash scripts/validate.sh
 PYTHONPATH=src python scripts/train_redshift_policy.py --steps 800 --batch-size 96
+PYTHONPATH=src:scripts python scripts/train_redshift_policy.py --steps 2500 --batch-size 256 --curriculum-buffer curriculum_results/buffer.json --feature-mode spec --out-dir training_results/curriculum_policy --plot-prefix curriculum_policy
 PYTHONPATH=src python scripts/run_autocurriculum.py --iterations 80 --write-yaml
 ```
 
