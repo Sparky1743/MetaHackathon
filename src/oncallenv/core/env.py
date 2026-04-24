@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import random
 from typing import Any, Optional
 
 import yaml
@@ -135,9 +136,27 @@ class OnCallRedShiftEnv(Environment[Action, Observation, State]):
         specs = {spec.task_id: spec for spec in self._seed_specs()}
         if task_id in specs:
             return specs[task_id]
-        if task_id is None or task_id == "curriculum":
+        if task_id == "curriculum":
+            evolved = self._sample_curriculum_scenario()
+            if evolved is not None:
+                return evolved
+            return DEFAULT_SCENARIO
+        if task_id is None:
             return DEFAULT_SCENARIO
         raise ValueError(f"Unknown task_id {task_id}. Available: {', '.join(sorted(specs))}")
+
+    def _sample_curriculum_scenario(self) -> ScenarioSpec | None:
+        try:
+            from oncallenv.curriculum import RegretBuffer
+        except Exception:
+            return None
+        path = os.getenv("CURRICULUM_BUFFER", os.path.join(os.getcwd(), "curriculum_results", "buffer.json"))
+        if not os.path.exists(path):
+            return None
+        try:
+            return RegretBuffer.load(PathLike(path)).sample(random.Random()).spec
+        except Exception:
+            return None
 
     def _seed_specs(self) -> list[ScenarioSpec]:
         seed_dir = os.path.join(os.getcwd(), "scenarios_seed")
@@ -162,3 +181,13 @@ def _env_float(name: str) -> float | None:
     except ValueError:
         return None
 
+
+class PathLike:
+    """Tiny adapter to avoid importing pathlib on the hot path above."""
+
+    def __init__(self, value: str):
+        self.value = value
+
+    def read_text(self, encoding: str = "utf-8") -> str:
+        with open(self.value, "r", encoding=encoding) as handle:
+            return handle.read()

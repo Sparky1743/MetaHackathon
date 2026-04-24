@@ -55,6 +55,8 @@ These plots are committed under `docs/plots/` so the submission has visible rewa
 
 ![Autocurriculum Diversity](docs/plots/autocurriculum_diversity.png)
 
+![Autocurriculum Solve Rate Histogram](docs/plots/autocurriculum_solve_rate_hist.png)
+
 ![Schema Drift Ablation](docs/plots/schema_drift_ablation.png)
 
 ## Reward Composition
@@ -77,6 +79,7 @@ pip install -r requirements.txt
 PYTHONPATH=src uvicorn app:app --host 0.0.0.0 --port 7860
 PYTHONPATH=src bash scripts/validate.sh
 PYTHONPATH=src python scripts/train_redshift_policy.py --steps 800 --batch-size 96
+PYTHONPATH=src python scripts/run_autocurriculum.py --iterations 80 --write-yaml
 ```
 
 Example:
