@@ -49,6 +49,10 @@ These plots are committed under `docs/plots/` so the submission has visible rewa
 
 ![Training Curve](docs/plots/training_curve.png)
 
+![GPU Policy Baseline vs Trained](docs/plots/gpu_policy_baseline_vs_trained.png)
+
+![GPU Policy Training Curve](docs/plots/gpu_policy_training_curve.png)
+
 ![Autocurriculum Diversity](docs/plots/autocurriculum_diversity.png)
 
 ![Schema Drift Ablation](docs/plots/schema_drift_ablation.png)
@@ -72,6 +76,7 @@ The reward is intentionally not monolithic:
 pip install -r requirements.txt
 PYTHONPATH=src uvicorn app:app --host 0.0.0.0 --port 7860
 PYTHONPATH=src bash scripts/validate.sh
+PYTHONPATH=src python scripts/train_redshift_policy.py --steps 800 --batch-size 96
 ```
 
 Example:
