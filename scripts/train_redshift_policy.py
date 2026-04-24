@@ -133,6 +133,16 @@ def required_indices(task_info: dict) -> list[int]:
     return labels
 
 
+def build_policy(input_dim: int, nn):
+    return nn.Sequential(
+        nn.Linear(input_dim, 96),
+        nn.Tanh(),
+        nn.Linear(96, 96),
+        nn.Tanh(),
+        nn.Linear(96, len(ACTIONS)),
+    )
+
+
 def evaluate(policy, task_infos: list[dict], device, *, random_policy: bool = False) -> dict:
     torch, _, _ = _import_torch()
     scores: dict[str, float] = {}
@@ -221,13 +231,7 @@ def main() -> None:
 
     task_infos = [inspect_task(task) for task in TASKS]
     input_dim = len(feature_vector(task_infos[0]))
-    policy = nn.Sequential(
-        nn.Linear(input_dim, 96),
-        nn.Tanh(),
-        nn.Linear(96, 96),
-        nn.Tanh(),
-        nn.Linear(96, len(ACTIONS)),
-    ).to(device)
+    policy = build_policy(input_dim, nn).to(device)
     optimizer = torch.optim.AdamW(policy.parameters(), lr=args.lr, weight_decay=0.01)
 
     baseline = evaluate(policy, task_infos, device, random_policy=True)
@@ -280,4 +284,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
