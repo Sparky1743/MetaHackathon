@@ -151,6 +151,13 @@ class OnCallRedShiftEnv(Environment[Action, Observation, State]):
             from oncallenv.curriculum import RegretBuffer
         except Exception:
             return None
+        path = os.getenv("CURRICULUM_BUFFER", os.path.join(os.getcwd(), "curriculum_results", "buffer.json"))
+        if not os.path.exists(path):
+            return None
+        try:
+            return RegretBuffer.load(PathLike(path)).sample(random.Random()).spec
+        except Exception:
+            return None
 
     def _curriculum_specs(self) -> list[ScenarioSpec]:
         try:
@@ -164,13 +171,6 @@ class OnCallRedShiftEnv(Environment[Action, Observation, State]):
             return [item.spec for item in RegretBuffer.load(PathLike(path)).scenarios]
         except Exception:
             return []
-        path = os.getenv("CURRICULUM_BUFFER", os.path.join(os.getcwd(), "curriculum_results", "buffer.json"))
-        if not os.path.exists(path):
-            return None
-        try:
-            return RegretBuffer.load(PathLike(path)).sample(random.Random()).spec
-        except Exception:
-            return None
 
     def _seed_specs(self) -> list[ScenarioSpec]:
         seed_dir = os.path.join(os.getcwd(), "scenarios_seed")
