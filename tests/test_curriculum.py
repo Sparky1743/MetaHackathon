@@ -27,3 +27,15 @@ def test_env_can_reset_from_curriculum_buffer(tmp_path: Path, monkeypatch):
     obs = OnCallRedShiftEnv().reset(task_id="curriculum")
     assert obs.task_id
     assert obs.alerts
+
+
+def test_env_can_reset_specific_evolved_task_from_curriculum_buffer(tmp_path: Path, monkeypatch):
+    runner = AutocurriculumRunner.from_seed_dir(Path("scenarios_seed"), seed=456)
+    buffer = runner.evolve(5)
+    evolved = next(item.spec.task_id for item in buffer.scenarios if item.spec.task_id.startswith("evolved_"))
+    path = tmp_path / "buffer.json"
+    buffer.save(path)
+    monkeypatch.setenv("CURRICULUM_BUFFER", str(path))
+    obs = OnCallRedShiftEnv().reset(task_id=evolved)
+    assert obs.task_id == evolved
+    assert obs.alerts

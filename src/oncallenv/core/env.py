@@ -93,7 +93,8 @@ class OnCallRedShiftEnv(Environment[Action, Observation, State]):
         self._state.done = True
 
     def list_tasks(self) -> list[dict[str, Any]]:
-        return [{"id": spec.task_id, "name": spec.task_id.replace("_", " ").title(), "max_steps": spec.max_steps} for spec in self._seed_specs()]
+        specs = {spec.task_id: spec for spec in [*self._seed_specs(), *self._curriculum_specs()]}
+        return [{"id": spec.task_id, "name": spec.task_id.replace("_", " ").title(), "max_steps": spec.max_steps} for spec in specs.values()]
 
     def _observation(self, result: str, done: bool = False) -> Observation:
         runtime = self._runtime
@@ -133,7 +134,7 @@ class OnCallRedShiftEnv(Environment[Action, Observation, State]):
         return {name: float(rubric.last_score or 0.0) for name, rubric in self.rubric.named_rubrics()}
 
     def _load_scenario(self, task_id: Optional[str]) -> ScenarioSpec:
-        specs = {spec.task_id: spec for spec in self._seed_specs()}
+        specs = {spec.task_id: spec for spec in [*self._seed_specs(), *self._curriculum_specs()]}
         if task_id in specs:
             return specs[task_id]
         if task_id == "curriculum":
@@ -150,6 +151,19 @@ class OnCallRedShiftEnv(Environment[Action, Observation, State]):
             from oncallenv.curriculum import RegretBuffer
         except Exception:
             return None
+
+    def _curriculum_specs(self) -> list[ScenarioSpec]:
+        try:
+            from oncallenv.curriculum import RegretBuffer
+        except Exception:
+            return []
+        path = os.getenv("CURRICULUM_BUFFER", os.path.join(os.getcwd(), "curriculum_results", "buffer.json"))
+        if not os.path.exists(path):
+            return []
+        try:
+            return [item.spec for item in RegretBuffer.load(PathLike(path)).scenarios]
+        except Exception:
+            return []
         path = os.getenv("CURRICULUM_BUFFER", os.path.join(os.getcwd(), "curriculum_results", "buffer.json"))
         if not os.path.exists(path):
             return None
