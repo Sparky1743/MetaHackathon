@@ -3,8 +3,12 @@ set -euo pipefail
 
 MODE="${1:-smoke}"
 MODEL_NAME="${MODEL_NAME:-unsloth/Qwen2.5-3B-Instruct-bnb-4bit}"
-PYTHONPATH="${PYTHONPATH:-src:scripts}"
-export PYTHONPATH
+EXTRA_PYTHONPATH="src:scripts"
+if [[ -n "${PYTHONPATH:-}" ]]; then
+  export PYTHONPATH="${EXTRA_PYTHONPATH}:${PYTHONPATH}"
+else
+  export PYTHONPATH="${EXTRA_PYTHONPATH}"
+fi
 export WANDB_DISABLED="${WANDB_DISABLED:-true}"
 export TOKENIZERS_PARALLELISM="${TOKENIZERS_PARALLELISM:-false}"
 export PYTHONUNBUFFERED="${PYTHONUNBUFFERED:-1}"
@@ -60,8 +64,13 @@ case "${MODE}" in
     run_train training_results/unsloth_grpo_kaggle_ablation 120 500 4 1024 768 192 24 100
     ;;
   archive)
-    tar -czf /kaggle/working/qwen3b_grpo_results.tar.gz training_results/unsloth_grpo_qwen3b_* training_results/unsloth_grpo_kaggle_ablation 2>/dev/null || \
-      tar -czf /kaggle/working/qwen3b_grpo_results.tar.gz training_results/unsloth_grpo_qwen3b_*
+    shopt -s nullglob
+    result_dirs=(training_results/unsloth_grpo_qwen3b_* training_results/unsloth_grpo_kaggle_ablation)
+    if (( ${#result_dirs[@]} == 0 )); then
+      echo "No GRPO result directories found to archive." >&2
+      exit 1
+    fi
+    tar -czf /kaggle/working/qwen3b_grpo_results.tar.gz "${result_dirs[@]}"
     ls -lh /kaggle/working/qwen3b_grpo_results.tar.gz
     ;;
   summary)
