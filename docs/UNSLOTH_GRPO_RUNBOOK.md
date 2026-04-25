@@ -80,6 +80,8 @@ In Kaggle:
 
 ### 2. Get The Code Into Kaggle
 
+Important: a Kaggle-backed notebook kernel cannot see local laptop paths like `/home/xiaofeng/...`. The code must be cloned into `/kaggle/working` or uploaded as a Kaggle Dataset. The ready-to-run notebook handles this safely by first resetting the kernel cwd to `/kaggle/working`, then cloning or pulling the repo.
+
 Best path if the branch is pushed:
 
 ```bash
