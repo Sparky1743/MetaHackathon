@@ -252,6 +252,42 @@ def make_grpo_config(args):
     return GRPOConfig(**kwargs)
 
 
+def trainable_parameter_report(model) -> dict[str, int]:
+    total = 0
+    trainable = 0
+    lora_names: list[str] = []
+    for name, parameter in model.named_parameters():
+        count = parameter.numel()
+        total += count
+        if parameter.requires_grad:
+            trainable += count
+        if "lora" in name.lower():
+            lora_names.append(name)
+    return {"total": total, "trainable": trainable, "lora_tensors": len(lora_names)}
+
+
+def ensure_lora_is_trainable(model) -> dict[str, int]:
+    """Fail early instead of letting AMP crash with an empty optimizer step."""
+
+    report = trainable_parameter_report(model)
+    if report["trainable"] > 0:
+        return report
+
+    for name, parameter in model.named_parameters():
+        if "lora" in name.lower():
+            parameter.requires_grad_(True)
+
+    report = trainable_parameter_report(model)
+    if report["trainable"] == 0:
+        lora_like = [name for name, _ in model.named_parameters() if "lora" in name.lower()]
+        raise RuntimeError(
+            "No trainable LoRA parameters were found after FastLanguageModel.get_peft_model(). "
+            "This would crash GRPO/AMP with 'No inf checks were recorded for this optimizer'. "
+            f"LoRA-like tensors found: {lora_like[:12]}"
+        )
+    return report
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--model-name", default="unsloth/Qwen2.5-1.5B-Instruct-bnb-4bit")
@@ -273,6 +309,8 @@ def main() -> None:
     parser.add_argument("--logging-steps", type=int, default=5)
     parser.add_argument("--save-steps", type=int, default=100)
     parser.add_argument("--eval-tasks", type=int, default=24)
+    parser.add_argument("--lora-rank", type=int, default=16)
+    parser.add_argument("--lora-alpha", type=int, default=32)
     parser.add_argument("--seed", type=int, default=20260424)
     args = parser.parse_args()
 
@@ -290,8 +328,13 @@ def main() -> None:
     dataset_path.write_text("\n".join(json.dumps(row) for row in rows) + "\n", encoding="utf-8")
 
     from datasets import Dataset
+    from unsloth import FastLanguageModel, PatchFastRL, is_bfloat16_supported
+
+    try:
+        PatchFastRL("GRPO", FastLanguageModel)
+    except Exception as exc:
+        print(f"WARN: PatchFastRL('GRPO') failed or was already applied: {exc}")
     from trl import GRPOTrainer
-    from unsloth import FastLanguageModel, is_bfloat16_supported
 
     model, tokenizer = FastLanguageModel.from_pretrained(
         model_name=args.model_name,
@@ -304,14 +347,19 @@ def main() -> None:
 
     model = FastLanguageModel.get_peft_model(
         model,
-        r=16,
+        r=args.lora_rank,
         target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"],
-        lora_alpha=32,
+        lora_alpha=args.lora_alpha,
         lora_dropout=0,
         bias="none",
         use_gradient_checkpointing="unsloth",
         random_state=args.seed,
     )
+    model.train()
+    trainable_report = ensure_lora_is_trainable(model)
+    if hasattr(model, "print_trainable_parameters"):
+        model.print_trainable_parameters()
+    print(f"Trainable parameter report: {trainable_report}")
 
     if is_bfloat16_supported():
         # V100 normally uses fp16; keep this only for newer GPUs if the script is reused.
@@ -357,6 +405,7 @@ def main() -> None:
         "trained_mean_reward": trained["mean_reward"],
         "adapter_dir": str(adapter_dir),
         "dataset_path": str(dataset_path),
+        "trainable_parameter_report": trainable_report,
     }
     (args.out_dir / "summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
     print(json.dumps(summary, indent=2))

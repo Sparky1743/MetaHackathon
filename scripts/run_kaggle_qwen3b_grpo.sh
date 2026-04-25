@@ -12,6 +12,8 @@ fi
 export WANDB_DISABLED="${WANDB_DISABLED:-true}"
 export TOKENIZERS_PARALLELISM="${TOKENIZERS_PARALLELISM:-false}"
 export PYTHONUNBUFFERED="${PYTHONUNBUFFERED:-1}"
+PER_DEVICE_TRAIN_BATCH_SIZE="${PER_DEVICE_TRAIN_BATCH_SIZE:-2}"
+NUM_GENERATIONS="${NUM_GENERATIONS:-2}"
 
 run_train() {
   local out_dir="$1"
@@ -30,9 +32,9 @@ run_train() {
     --out-dir "${out_dir}" \
     --max-tasks "${max_tasks}" \
     --max-steps "${max_steps}" \
-    --per-device-train-batch-size 1 \
+    --per-device-train-batch-size "${PER_DEVICE_TRAIN_BATCH_SIZE}" \
     --gradient-accumulation-steps "${grad_accum}" \
-    --num-generations "${NUM_GENERATIONS:-2}" \
+    --num-generations "${NUM_GENERATIONS}" \
     --max-seq-length "${seq_len}" \
     --max-prompt-length "${prompt_len}" \
     --max-completion-length "${completion_len}" \
