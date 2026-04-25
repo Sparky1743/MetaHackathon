@@ -1,0 +1,100 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+MODE="${1:-smoke}"
+MODEL_NAME="${MODEL_NAME:-unsloth/Qwen2.5-3B-Instruct-bnb-4bit}"
+PYTHONPATH="${PYTHONPATH:-src:scripts}"
+export PYTHONPATH
+export WANDB_DISABLED="${WANDB_DISABLED:-true}"
+export TOKENIZERS_PARALLELISM="${TOKENIZERS_PARALLELISM:-false}"
+export PYTHONUNBUFFERED="${PYTHONUNBUFFERED:-1}"
+
+run_train() {
+  local out_dir="$1"
+  local max_tasks="$2"
+  local max_steps="$3"
+  local grad_accum="$4"
+  local seq_len="$5"
+  local prompt_len="$6"
+  local completion_len="$7"
+  local eval_tasks="$8"
+  local save_steps="$9"
+
+  python scripts/train_unsloth_grpo.py \
+    --model-name "${MODEL_NAME}" \
+    --curriculum-buffer curriculum_results/buffer.json \
+    --out-dir "${out_dir}" \
+    --max-tasks "${max_tasks}" \
+    --max-steps "${max_steps}" \
+    --per-device-train-batch-size 1 \
+    --gradient-accumulation-steps "${grad_accum}" \
+    --num-generations "${NUM_GENERATIONS:-2}" \
+    --max-seq-length "${seq_len}" \
+    --max-prompt-length "${prompt_len}" \
+    --max-completion-length "${completion_len}" \
+    --eval-tasks "${eval_tasks}" \
+    --lr "${LR:-5e-6}" \
+    --save-steps "${save_steps}" \
+    --logging-steps "${LOGGING_STEPS:-5}"
+}
+
+case "${MODE}" in
+  gpu)
+    nvidia-smi
+    ;;
+  verify)
+    python -m pytest tests -q
+    openenv validate .
+    ;;
+  smoke)
+    run_train training_results/unsloth_grpo_qwen3b_smoke 40 50 4 768 512 128 8 50
+    ;;
+  main)
+    run_train training_results/unsloth_grpo_qwen3b_kaggle 160 600 8 1024 768 192 32 100
+    ;;
+  long)
+    run_train training_results/unsloth_grpo_qwen3b_kaggle_long 206 1000 8 1024 768 192 48 100
+    ;;
+  fallback-1b5)
+    MODEL_NAME="${FALLBACK_MODEL_NAME:-unsloth/Qwen2.5-1.5B-Instruct-bnb-4bit}"
+    run_train training_results/unsloth_grpo_kaggle_ablation 120 500 4 1024 768 192 24 100
+    ;;
+  archive)
+    tar -czf /kaggle/working/qwen3b_grpo_results.tar.gz training_results/unsloth_grpo_qwen3b_* training_results/unsloth_grpo_kaggle_ablation 2>/dev/null || \
+      tar -czf /kaggle/working/qwen3b_grpo_results.tar.gz training_results/unsloth_grpo_qwen3b_*
+    ls -lh /kaggle/working/qwen3b_grpo_results.tar.gz
+    ;;
+  summary)
+    python - <<'PY'
+import json
+from pathlib import Path
+
+paths = sorted(Path("training_results").glob("unsloth_grpo*/summary.json"))
+if not paths:
+    raise SystemExit("No GRPO summary.json files found under training_results/")
+for path in paths:
+    data = json.loads(path.read_text())
+    print(path)
+    print("  model:", data.get("model_name"))
+    print("  baseline_mean_reward:", data.get("baseline_mean_reward"))
+    print("  trained_mean_reward:", data.get("trained_mean_reward"))
+    print("  duration_sec:", data.get("duration_sec"))
+PY
+    ;;
+  *)
+    cat >&2 <<EOF
+Unknown mode: ${MODE}
+
+Usage:
+  bash scripts/run_kaggle_qwen3b_grpo.sh gpu
+  bash scripts/run_kaggle_qwen3b_grpo.sh verify
+  bash scripts/run_kaggle_qwen3b_grpo.sh smoke
+  bash scripts/run_kaggle_qwen3b_grpo.sh main
+  bash scripts/run_kaggle_qwen3b_grpo.sh long
+  bash scripts/run_kaggle_qwen3b_grpo.sh fallback-1b5
+  bash scripts/run_kaggle_qwen3b_grpo.sh summary
+  bash scripts/run_kaggle_qwen3b_grpo.sh archive
+EOF
+    exit 2
+    ;;
+esac

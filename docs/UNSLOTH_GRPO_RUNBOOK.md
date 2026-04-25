@@ -52,6 +52,23 @@ These are estimates. The first run can spend extra time installing packages and 
 
 Use this if campus VPN is unavailable.
 
+For the complementary 3B experiment, the ready-to-run notebook is:
+
+```text
+notebooks/04_kaggle_qwen3b_grpo.ipynb
+```
+
+It uses helper modes from:
+
+```bash
+bash scripts/run_kaggle_qwen3b_grpo.sh gpu
+bash scripts/run_kaggle_qwen3b_grpo.sh verify
+bash scripts/run_kaggle_qwen3b_grpo.sh smoke
+bash scripts/run_kaggle_qwen3b_grpo.sh main
+bash scripts/run_kaggle_qwen3b_grpo.sh long
+bash scripts/run_kaggle_qwen3b_grpo.sh archive
+```
+
 ### 1. Create Notebook
 
 In Kaggle:
@@ -368,4 +385,3 @@ Kaggle generally keeps the notebook session running for a while after browser di
    - `trained_generations.json`
    - LoRA adapter if size is acceptable
    - Updated plots/results in README
-
